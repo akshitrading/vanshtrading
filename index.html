@@ -21,12 +21,12 @@
       margin-top: 10px;
     }
   </style>
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async=""></script>
 <script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "a44ed0a1-4640-4841-b44d-6dcd8bf3d115",
+  window.OneSignal = window.OneSignal || [];
+  OneSignal.push(function() {
+    OneSignal.init({
+      appId: "YOUR-ONESIGNAL-APP-ID", // 👈 Replace with your real OneSignal App ID
     });
   });
 </script>
@@ -166,6 +166,30 @@
 
     fetchData();
     setInterval(fetchData, 300000); // refresh every 5 min
-  </script>
+<script>
+  function sendSignalNotification(signal) {
+    OneSignal.sendSelfNotification(
+      signal + " Signal Triggered!", 
+      "A new " + signal + " signal was detected on vanshtrading.",
+      'https://vanshtrading.github.io/',
+      'https://cdn-icons-png.flaticon.com/512/3898/3898154.png',
+      {
+        notificationType: 'signal',
+        signalValue: signal
+      }
+    );
+  }
+
+  setInterval(function () {
+    const text = document.body.innerText;
+
+    if (text.includes("Buy Signal") || text.includes("BUY")) {
+      sendSignalNotification("BUY");
+    }
+    if (text.includes("Sell Signal") || text.includes("SELL")) {
+      sendSignalNotification("SELL");
+    }
+  }, 5000);
+</script>
 </body>
 </html>
