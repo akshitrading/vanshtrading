@@ -114,5 +114,39 @@
       }
     });
   </script>
+  //@version=5
+ Custom Gainz Algo v2 Alpha - Pine Script
+ indicator("Custom Gainz Algo v2 Alpha", overlay=true)
+ // - INPUTS 
+fastLength = input.int(14, title="Fast EMA Length")
+ slowLength = input.int(50, title="Slow EMA Length")
+ atrLength  = input.int(14, title="ATR Length")
+ mult       = input.float(1.5, title="ATR Multiplier", step=0.1)
+ // - INDICATORS 
+emaFast = ta.ema(close, fastLength)
+ emaSlow = ta.ema(close, slowLength)
+ atr     = ta.atr(atrLength)
+ // - TREND LOGIC 
+bullTrend = emaFast > emaSlow
+ bearTrend = emaFast < emaSlow
+ // - ENTRY SIGNALS 
+buySignal  = ta.crossover(emaFast, emaSlow)
+ sellSignal = ta.crossunder(emaFast, emaSlow)
+ // - TRAILING STOP 
+longStop = close - atr * mult
+ shortStop = close + atr * mult
+ // - PLOT EMAS 
+plot(emaFast, color=color.teal, title="Fast EMA")
+ plot(emaSlow, color=color.orange, title="Slow EMA")
+ // - PLOT SIGNALS 
+plotshape(buySignal, title="Buy Signal", location=location.belowbar, color=color.green,
+ style=shape.labelup, text="BUY")
+ plotshape(sellSignal, title="Sell Signal", location=location.abovebar, color=color.red,
+ style=shape.labeldown, text="SELL")
+ // - PLOT STOPS 
+plot(bullTrend ? longStop : na, title="Long Stop", color=color.green,
+ style=plot.style_linebr)
+ plot(bearTrend ? shortStop : na, title="Short Stop", color=color.red,
+ style=plot.style_linebr
 </body>
 </html>
