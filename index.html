@@ -1,162 +1,118 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VanshTrading - ETH Buy/Sell Signals</title>
+  <meta charset="UTF-8">
+  <title>ETH 5-Min Signals</title>
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
   <style>
     body {
       margin: 0;
-      background: #111;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
+      padding: 0;
+      background-color: #000;
     }
-    #chart {
-      width: 100%;
-      height: 600px;
-    }
-    #error {
-      color: red;
-      margin-top: 10px;
+    #container {
+      height: 100vh;
     }
   </style>
 </head>
 <body>
-  <h1>VanshTrading - ETH Buy/Sell Signals (5m Chart)</h1>
-  <div id="chart"></div>
-  <div id="error"></div>
+  <div id="container"></div>
+  <script type="text/javascript">
+    new TradingView.widget({
+      autosize: true,
+      symbol: "BINANCE:ETHUSDT",
+      interval: "5",
+      timezone: "Etc/UTC",
+      theme: "dark",
+      style: "1",
+      locale: "en",
+      toolbar_bg: "#f1f3f6",
+      enable_publishing: false,
+      allow_symbol_change: true,
+      container_id: "container",
+      studies_overrides: {},
+      studies: [],
+      overrides: {
+        "mainSeriesProperties.style": 1
+      },
+      custom_indicators_getter: function (PineJS) {
+        return Promise.resolve([
+          {
+            name: "BuySellSignal",
+            metainfo: {
+              _metainfoVersion: 40,
+              id: "BuySellSignal@tv-basic",
+              name: "BuySellSignal",
+              description: "Buy Sell Signal",
+              is_hidden_study: false,
+              is_price_study: true,
+              plots: [
+                { id: "plot_0", type: "shape", title: "Signal" }
+              ],
+              styles: {
+                plot_0: {
+                  title: "Signal",
+                  shape: "arrow_up",
+                  location: "belowbar",
+                  color: "#00ff00",
+                  size: 1
+                }
+              },
+              defaults: {
+                styles: {
+                  plot_0: {
+                    color: "#00ff00",
+                    width: 1,
+                    style: 0,
+                    visible: true
+                  }
+                }
+              },
+              inputs: []
+            },
+            constructor: function () {
+              return {
+                init: function (context, input) {
+                  this._context = context;
+                  this._input = input;
+                  this._context.new_var("close");
+                },
+                main: function (context, input) {
+                  const c = context;
+                  const close = c.close;
 
-  <script src="https://unpkg.com/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script>
-    const chart = LightweightCharts.createChart(document.getElementById("chart"), {
-      width: window.innerWidth,
-      height: 600,
-      layout: {
-        background: { color: '#111' },
-        textColor: '#fff',
-      },
-      grid: {
-        vertLines: { color: '#333' },
-        horzLines: { color: '#333' },
-      },
-      timeScale: { timeVisible: true, secondsVisible: false },
+                  const signal = [];
+
+                  for (let i = 20; i < close.length; i++) {
+                    const trendUp = close[i] > close[i - 1];
+                    const trendDown = close[i] < close[i - 1];
+
+                    let upCount = 0;
+                    let downCount = 0;
+
+                    for (let j = 0; j < 3; j++) {
+                      if (close[i - j] > close[i - j - 1]) upCount++;
+                      if (close[i - j] < close[i - j - 1]) downCount++;
+                    }
+
+                    if (upCount === 3) {
+                      signal[i] = { shape: "arrow_up", text: "Buy" };
+                    } else if (downCount === 3) {
+                      signal[i] = { shape: "arrow_down", text: "Sell" };
+                    } else {
+                      signal[i] = null;
+                    }
+                  }
+
+                  return [signal];
+                }
+              };
+            }
+          }
+        ]);
+      }
     });
-
-    const candleSeries = chart.addCandlestickSeries();
-
-    async function fetchData() {
-      try {
-        document.getElementById("error").textContent = "";
-        const res = await fetch("https://api.binance.com/api/v3/klines?symbol=ETHUSDT&interval=5m&limit=500");
-        const raw = await res.json();
-
-        const candles = raw.map(d => ({
-          time: Math.floor(d[0] / 1000),
-          open: parseFloat(d[1]),
-          high: parseFloat(d[2]),
-          low: parseFloat(d[3]),
-          close: parseFloat(d[4])
-        }));
-
-        if (!candles.length) throw new Error("No candle data received");
-        candleSeries.setData(candles);
-        plotSignals(candles);
-
-      } catch (err) {
-        console.error("Error fetching candles:", err);
-        document.getElementById("error").textContent = "Error loading data. Try again later.";
-      }
-    }
-
-    function calculateEMA(prices, period) {
-      const k = 2 / (period + 1);
-      let ema = prices[0];
-      const result = [ema];
-      for (let i = 1; i < prices.length; i++) {
-        ema = prices[i] * k + ema * (1 - k);
-        result.push(ema);
-      }
-      return result;
-    }
-
-    function calculateRSI(closes, period = 14) {
-      let gains = 0, losses = 0;
-      for (let i = 1; i <= period; i++) {
-        const change = closes[i] - closes[i - 1];
-        if (change >= 0) gains += change; else losses -= change;
-      }
-      let rs = gains / (losses || 1);
-      let rsi = [100 - 100 / (1 + rs)];
-      for (let i = period + 1; i < closes.length; i++) {
-        const change = closes[i] - closes[i - 1];
-        if (change >= 0) {
-          gains = (gains * (period - 1) + change) / period;
-          losses = (losses * (period - 1)) / period;
-        } else {
-          gains = (gains * (period - 1)) / period;
-          losses = (losses * (period - 1) - change) / period;
-        }
-        rs = gains / (losses || 1);
-        rsi.push(100 - 100 / (1 + rs));
-      }
-      while (rsi.length < closes.length) rsi.unshift(null);
-      return rsi;
-    }
-
-    function isTrendConfirmed(data, index, type = 'up', length = 3) {
-      let success = 0;
-      for (let i = 0; i < length; i++) {
-        if (index + i + 1 >= data.length) break;
-        const c1 = data[index + i].close;
-        const c2 = data[index + i + 1].close;
-        if ((type === 'up' && c2 > c1) || (type === 'down' && c2 < c1)) success++;
-      }
-      return success >= length;
-    }
-
-    function plotSignals(data) {
-      const closes = data.map(d => d.close);
-      const ema9 = calculateEMA(closes, 9);
-      const ema21 = calculateEMA(closes, 21);
-      const rsi = calculateRSI(closes);
-
-      const markers = [];
-      for (let i = 30; i < data.length - 21; i++) {
-        if (
-          ema9[i] > ema21[i] &&
-          ema9[i - 1] <= ema21[i - 1] &&
-          rsi[i] < 75 &&
-          isTrendConfirmed(data, i, 'up', 3)
-        ) {
-          markers.push({
-            time: data[i].time,
-            position: 'belowBar',
-            color: 'lime',
-            shape: 'arrowUp',
-            text: 'Buy'
-          });
-        } else if (
-          ema9[i] < ema21[i] &&
-          ema9[i - 1] >= ema21[i - 1] &&
-          rsi[i] > 25 &&
-          isTrendConfirmed(data, i, 'down', 3)
-        ) {
-          markers.push({
-            time: data[i].time,
-            position: 'aboveBar',
-            color: 'red',
-            shape: 'arrowDown',
-            text: 'Sell'
-          });
-        }
-      }
-
-      candleSeries.setMarkers(markers);
-    }
-
-    fetchData();
-    setInterval(fetchData, 300000); // refresh every 5 min
   </script>
 </body>
 </html>
