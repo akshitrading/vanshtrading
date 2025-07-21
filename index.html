@@ -113,7 +113,6 @@
         ]);
       }
     });
-  </script>
   //@version=5
  Custom Gainz Algo v2 Alpha - Pine Script
  indicator("Custom Gainz Algo v2 Alpha", overlay=true)
@@ -147,6 +146,7 @@ plotshape(buySignal, title="Buy Signal", location=location.belowbar, color=color
 plot(bullTrend ? longStop : na, title="Long Stop", color=color.green,
  style=plot.style_linebr)
  plot(bearTrend ? shortStop : na, title="Short Stop", color=color.red,
- style=plot.style_linebr
+ style=plot.style_linebr)
+ </script>
 </body>
 </html>
